@@ -1,0 +1,15 @@
+
+services:
+  - type: web
+    name: cmbm-news
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BASE_URL
+        value: https://cmbmnews2.onrender.com
+      - key: SESSION_SECRET
+        generateValue: true

@@ -88,6 +88,12 @@ let BASE_URL;
 if (process.env.BASE_URL) {
   // URL definida manualmente (prioridade máxima)
   BASE_URL = process.env.BASE_URL;
+} else if (process.env.RENDER_EXTERNAL_URL) {
+  // Ambiente Render
+  BASE_URL = process.env.RENDER_EXTERNAL_URL;
+} else if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+  // Ambiente Railway
+  BASE_URL = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
 } else if (process.env.KOYEB_PUBLIC_DOMAIN) {
   // Ambiente Koyeb
   BASE_URL = `https://${process.env.KOYEB_PUBLIC_DOMAIN}`;
@@ -97,6 +103,9 @@ if (process.env.BASE_URL) {
 } else if (process.env.URL_ACESSO) {
   // URL manual (compatibilidade)
   BASE_URL = process.env.URL_ACESSO;
+} else if (process.env.NODE_ENV === 'production') {
+  // Para produção sem variáveis específicas
+  BASE_URL = 'https://cmbmnews2.onrender.com';
 } else {
   // Fallback para desenvolvimento
   BASE_URL = `http://localhost:${PORT}`;
@@ -104,8 +113,12 @@ if (process.env.BASE_URL) {
 
 console.log(`🌐 URL base configurada: ${BASE_URL}`);
 
-// Configurar trust proxy para Koyeb/Replit
-app.set('trust proxy', true);
+// Configurar trust proxy para produção (Render, Koyeb, Railway, etc.)
+if (process.env.NODE_ENV === 'production' || process.env.RENDER_EXTERNAL_URL || process.env.KOYEB_PUBLIC_DOMAIN) {
+  app.set('trust proxy', 1);
+} else {
+  app.set('trust proxy', true);
+}
 
 // Configurar tratamento de erros não capturados
 uncaughtExceptionHandler();
@@ -354,10 +367,10 @@ app.use(session({
   saveUninitialized: false,
   name: 'sessionId', // Mudar nome padrão do cookie
   cookie: { 
-    secure: false, 
+    secure: process.env.NODE_ENV === 'production', // HTTPS em produção
     httpOnly: true,
     maxAge: 2 * 60 * 60 * 1000, // Reduzir para 2 horas
-    sameSite: 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
@@ -446,12 +459,14 @@ function requireRole(roles) {
 
 // Middleware para carregar dados do usuário
 function loadUser(req, res, next) {
-  // Debug para identificar problema
-  console.log('🔍 loadUser middleware executado para:', req.method, req.path);
-  
-  // Verificar se é a rota problemática
-  if (req.method === 'POST' && req.path === '/perfil/confirmar-alteracao') {
-    console.log('⚠️  Processando rota problemática /perfil/confirmar-alteracao');
+  // Debug para identificar problema apenas em desenvolvimento
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔍 loadUser middleware executado para:', req.method, req.path);
+    
+    // Verificar se é a rota problemática
+    if (req.method === 'POST' && req.path === '/perfil/confirmar-alteracao') {
+      console.log('⚠️  Processando rota problemática /perfil/confirmar-alteracao');
+    }
   }
   
   if (req.session.userId) {
@@ -474,6 +489,16 @@ function loadUser(req, res, next) {
   } else {
     next();
   }
+}
+
+// Middleware de debug para rotas (apenas em produção para troubleshooting)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.path.includes('/redefinir-senha') || req.path.includes('/perfil')) {
+      console.log(`🔍 [PROD] ${req.method} ${req.path} - IP: ${req.ip}`);
+    }
+    next();
+  });
 }
 
 app.use(loadUser);
@@ -3618,9 +3643,11 @@ async function startServer() {
     await initializeDatabase();
 
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Servidor CMBM NEWS rodando na porta ${PORT}`);
-      console.log(`URL do Koyeb: ${BASE_URL}`);
-      console.log(`Servidor configurado para aceitar requisições externas`);
+      console.log(`🚀 Servidor CMBM NEWS rodando na porta ${PORT}`);
+      console.log(`🌐 URL configurada: ${BASE_URL}`);
+      console.log(`📡 Servidor configurado para aceitar requisições externas`);
+      console.log(`🔧 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📊 Trust Proxy: ${app.get('trust proxy')}`);
     });
 
     app.get('/debug', (req, res) => {
