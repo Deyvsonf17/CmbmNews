@@ -4,7 +4,7 @@
 <div class="container my-5">
   <div class="row">
     <div class="col-12">
-      <!-- Header da página -->
+      <!-- HHeader da página -->
       <div class="page-header text-center mb-5">
         <h1 class="display-4">
           <i class="fas fa-list-ol text-primary me-3"></i>
@@ -77,6 +77,32 @@
         </ul>
       </div>
 
+      <!-- Ferramentas de Debug -->
+      <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0">
+            <i class="fas fa-tools me-2"></i>
+            Ferramentas de Manutenção
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="verificarStatus()">
+              <i class="fas fa-search me-1"></i>
+              Ver Status Detalhado
+            </button>
+            <button type="button" class="btn btn-outline-success" onclick="forcarAgendamento()">
+              <i class="fas fa-calendar-plus me-1"></i>
+              Forçar Agendamento
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="verificarPublicacao()">
+              <i class="fas fa-play me-1"></i>
+              Verificar Publicação
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Fila de homenagens -->
       <% if (filaHomenagens && filaHomenagens.length > 0) { %>
         <div class="card shadow-sm">
@@ -134,7 +160,13 @@
                         </span>
                         <br>
                         <small class="text-muted">
-                          <%= new Date(homenagem.data_agendada).toLocaleDateString('pt-BR') %>
+                          <% if (homenagem.data_publicacao) { %>
+                            <%= new Date(homenagem.data_publicacao).toLocaleDateString('pt-BR') %>
+                          <% } else if (homenagem.data_agendada) { %>
+                            <%= new Date(homenagem.data_agendada).toLocaleDateString('pt-BR') %>
+                          <% } else { %>
+                            Sem data
+                          <% } %>
                         </small>
                       <% } else if (homenagem.data_agendada) { %>
                         <span class="badge bg-info mb-2">
@@ -258,6 +290,71 @@ function publicarAgora(homenagemId) {
       console.error('Erro:', error);
       alert('Erro ao publicar homenagem');
     });
+  }
+}
+
+function verificarStatus() {
+  fetch('/debug/homenagens')
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        alert('Erro: ' + data.error);
+        return;
+      }
+      
+      let info = `=== STATUS DAS HOMENAGENS ===\n\n`;
+      info += `Total: ${data.total}\n`;
+      info += `Agora: ${new Date(data.agora).toLocaleString('pt-BR')}\n\n`;
+      
+      data.homenagens.forEach((h, i) => {
+        info += `${i + 1}. ${h.nome}\n`;
+        info += `   Status: ${h.status_publicacao}\n`;
+        info += `   Ordem: ${h.ordem_publicacao || 'N/A'}\n`;
+        if (h.data_agendada) {
+          info += `   Agendada: ${new Date(h.data_agendada).toLocaleString('pt-BR')}\n`;
+        }
+        info += `   Publicada: ${h.publicada ? 'Sim' : 'Não'}\n\n`;
+      });
+      
+      alert(info);
+    })
+    .catch(error => {
+      console.error('Erro:', error);
+      alert('Erro ao verificar status');
+    });
+}
+
+function forcarAgendamento() {
+  if (confirm('Forçar novo agendamento das homenagens pendentes?')) {
+    fetch('/debug/agendar-homenagens', { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message || data.error);
+        if (data.success) {
+          setTimeout(() => location.reload(), 2000);
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao forçar agendamento');
+      });
+  }
+}
+
+function verificarPublicacao() {
+  if (confirm('Verificar se há homenagens prontas para publicação?')) {
+    fetch('/debug/verificar-publicacao', { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message || data.error);
+        if (data.success) {
+          setTimeout(() => location.reload(), 2000);
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao verificar publicação');
+      });
   }
 }
 </script>
