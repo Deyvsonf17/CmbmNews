@@ -1344,6 +1344,11 @@ app.get('/logout', (req, res) => {
   });
 });
 
+
+// 🔥 — Health-check para o UptimeRobot / Render
+app.get('/healthz', (_req, res) => res.status(200).send('OK'));
+
+
 // Rota POST para logout (alternativa)
 app.post('/logout', (req, res) => {
   console.log('🚪 Processando logout POST para usuário:', req.session.user?.nome || 'Anônimo');
