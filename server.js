@@ -105,7 +105,7 @@ if (process.env.BASE_URL) {
   BASE_URL = process.env.URL_ACESSO;
 } else if (process.env.NODE_ENV === 'production') {
   // Para produção sem variáveis específicas
-  BASE_URL = 'https://cmbmnews2.onrender.com';
+  BASE_URL = 'https://CmbmNews.onrender.com';
 } else {
   // Fallback para desenvolvimento
   BASE_URL = `http://localhost:${PORT}`;

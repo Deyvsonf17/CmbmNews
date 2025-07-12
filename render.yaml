@@ -10,6 +10,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: BASE_URL
-        value: https://cmbmnews2.onrender.com
+        value: https://CmbmNews.onrender.com
       - key: SESSION_SECRET
         generateValue: true
